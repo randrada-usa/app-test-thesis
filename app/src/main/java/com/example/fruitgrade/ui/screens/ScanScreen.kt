@@ -344,31 +344,31 @@ fun CameraPreviewWithCapture(
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(24.dp),
+                            modifier = Modifier.padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
                                 Icons.Default.Camera,
                                 contentDescription = null,
-                                modifier = Modifier.size(48.dp),
+                                modifier = Modifier.size(36.dp),
                                 tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                "Ready to Scan",
-                                style = MaterialTheme.typography.headlineSmall
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
+                                "Ready to Scan",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
                                 if (isBatchMode) "Tap Start to capture up to 5 images" else "Tap Start to capture an image",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 textAlign = TextAlign.Center
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
                             Button(
                                 onClick = onStartScan
                             ) {
-                                Icon(Icons.Default.Camera, null, Modifier.size(20.dp))
+                                Icon(Icons.Default.Camera, null, Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.size(4.dp))
                                 Text("Start Scan")
                             }
@@ -386,55 +386,50 @@ fun CameraPreviewWithCapture(
             ) {
                 if (isLoading) {
                     Card(
-                        modifier = Modifier.padding(8.dp),
+                        modifier = Modifier.padding(4.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier.padding(12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(48.dp),
+                                modifier = Modifier.size(36.dp),
                                 color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "Processing...",
-                                style = MaterialTheme.typography.titleMedium
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                "Running inference on your images",
-                                style = MaterialTheme.typography.bodySmall
+                                "Processing...",
+                                style = MaterialTheme.typography.bodyMedium
                             )
                         }
                     }
                 } else {
                     Card(
-                        modifier = Modifier.padding(8.dp),
+                        modifier = Modifier.padding(4.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier.padding(12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
                                 "Image $capturedCount / $maxCaptures",
-                                style = MaterialTheme.typography.titleMedium
+                                style = MaterialTheme.typography.bodyMedium
                             )
                             if (maxCaptures > 1) {
                                 LinearProgressIndicator(
                                     progress = { capturedCount.toFloat() / maxCaptures },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
+                                        .padding(vertical = 4.dp),
                                 )
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
@@ -460,7 +455,7 @@ fun CameraPreviewWithCapture(
                                     },
                                     enabled = capturedCount < maxCaptures
                                 ) {
-                                    Icon(Icons.Default.Camera, null, Modifier.size(20.dp))
+                                    Icon(Icons.Default.Camera, null, Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.size(4.dp))
                                     Text("Capture")
                                 }
@@ -468,7 +463,7 @@ fun CameraPreviewWithCapture(
                                     onClick = onPickGallery,
                                     enabled = capturedCount < maxCaptures
                                 ) {
-                                    Icon(Icons.Default.PhotoLibrary, null, Modifier.size(20.dp))
+                                    Icon(Icons.Default.PhotoLibrary, null, Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.size(4.dp))
                                     Text("Gallery")
                                 }
@@ -477,17 +472,17 @@ fun CameraPreviewWithCapture(
                     }
                 }
                 if (thumbnails.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         items(thumbnails) { bitmap ->
                             Image(
                                 bitmap = bitmap.asImageBitmap(),
                                 contentDescription = "Captured",
                                 modifier = Modifier
-                                    .size(64.dp)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(6.dp))
                                     .background(MaterialTheme.colorScheme.surface)
                             )
                         }

@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Memory
@@ -56,6 +58,7 @@ fun HomeScreen(
     var selectedMode by remember { mutableStateOf(modes[0]) }
     var modelExpanded by remember { mutableStateOf(false) }
     var modeExpanded by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
 
     Scaffold(
         topBar = {
@@ -65,7 +68,7 @@ fun HomeScreen(
                         Icon(
                             Icons.Default.Science,
                             contentDescription = null,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.size(8.dp))
                         Text("FruitGrade")
@@ -82,8 +85,9 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AnimatedVisibility(
@@ -95,27 +99,27 @@ fun HomeScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(24.dp),
+                        modifier = Modifier.padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(
                             Icons.Default.PhotoCamera,
                             contentDescription = null,
-                            modifier = Modifier.size(64.dp),
+                            modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             "Banana Ripeness Grader",
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "AI-powered fruit grading using on-device ML",
+                            "AI-powered fruit grading",
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -128,11 +132,11 @@ fun HomeScreen(
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -141,10 +145,11 @@ fun HomeScreen(
                         Icon(
                             Icons.Default.Memory,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text("Model", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text("Model", style = MaterialTheme.typography.titleSmall)
                     }
                     ExposedDropdownMenuBox(
                         expanded = modelExpanded,
@@ -157,8 +162,9 @@ fun HomeScreen(
                             readOnly = true,
                             value = selectedModel.second,
                             onValueChange = {},
-                            label = { Text("Select Model") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelExpanded) }
+                            label = { Text("Select") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelExpanded) },
+                            singleLine = true
                         )
                         ExposedDropdownMenu(
                             expanded = modelExpanded,
@@ -178,13 +184,15 @@ fun HomeScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -193,10 +201,11 @@ fun HomeScreen(
                         Icon(
                             Icons.Default.ViewAgenda,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text("Mode", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text("Mode", style = MaterialTheme.typography.titleSmall)
                     }
                     ExposedDropdownMenuBox(
                         expanded = modeExpanded,
@@ -209,8 +218,9 @@ fun HomeScreen(
                             readOnly = true,
                             value = selectedMode.second,
                             onValueChange = {},
-                            label = { Text("Select Mode") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modeExpanded) }
+                            label = { Text("Select") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modeExpanded) },
+                            singleLine = true
                         )
                         ExposedDropdownMenu(
                             expanded = modeExpanded,
@@ -230,14 +240,14 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             FilledTonalButton(
                 onClick = { onScan(selectedModel.first, selectedMode.first) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Icon(Icons.Default.PhotoCamera, contentDescription = null, Modifier.size(20.dp))
-                Spacer(modifier = Modifier.size(8.dp))
+                Icon(Icons.Default.PhotoCamera, contentDescription = null, Modifier.size(18.dp))
+                Spacer(modifier = Modifier.size(6.dp))
                 Text("Start Scan")
             }
 
@@ -245,8 +255,8 @@ fun HomeScreen(
                 onClick = onHistory,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.History, contentDescription = null, Modifier.size(20.dp))
-                Spacer(modifier = Modifier.size(8.dp))
+                Icon(Icons.Default.History, contentDescription = null, Modifier.size(18.dp))
+                Spacer(modifier = Modifier.size(6.dp))
                 Text("View History")
             }
         }

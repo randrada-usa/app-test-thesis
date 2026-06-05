@@ -100,10 +100,10 @@ fun ResultScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (result != null) {
                 AnimatedVisibility(
@@ -122,14 +122,14 @@ fun ResultScreen(
                     ) {
                         Column(
                             modifier = Modifier
-                                .padding(24.dp)
+                                .padding(16.dp)
                                 .fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // Large grade badge
                             Box(
                                 modifier = Modifier
-                                    .size(80.dp)
+                                    .size(64.dp)
                                     .clip(CircleShape)
                                     .background(gradeColor(result.finalGrade)),
                                 contentAlignment = Alignment.Center
@@ -142,31 +142,31 @@ fun ResultScreen(
                                         "rotten" -> "G4"
                                         else -> "?"
                                     },
-                                    style = MaterialTheme.typography.headlineLarge,
+                                    style = MaterialTheme.typography.headlineMedium,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
                             Text(
                                 gradeLabel(result.finalGrade),
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = MaterialTheme.typography.titleLarge,
                                 color = gradeColor(result.finalGrade),
                                 fontWeight = FontWeight.Bold
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 "${"%.1f".format(result.finalConfidence * 100)}% Confidence",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             SuggestionChip(
                                 onClick = { },
                                 label = {
                                     Text(
                                         result.methodUsed.replace("_", " ").uppercase(),
-                                        style = MaterialTheme.typography.labelMedium
+                                        style = MaterialTheme.typography.labelSmall
                                     )
                                 }
                             )
@@ -179,15 +179,15 @@ fun ResultScreen(
                 // Metadata section
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
                             "Scan Details",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold
                         )
                         Divider()
@@ -200,15 +200,15 @@ fun ResultScreen(
                 // Individual predictions
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
                             "Individual Predictions",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold
                         )
                         Divider()
@@ -228,11 +228,11 @@ fun ResultScreen(
                                             .background(color)
                                     )
                                     Spacer(modifier = Modifier.size(8.dp))
-                                    Text("Image ${index + 1}: $label")
+                                    Text("Image ${index + 1}: $label", style = MaterialTheme.typography.bodySmall)
                                 }
                                 Text(
                                     "${"%.1f".format(pair.second * 100)}%",
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Medium
                                 )
                             }
@@ -242,26 +242,26 @@ fun ResultScreen(
             } else {
                 Text(
                     "No result available",
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Button(
                 onClick = onHome,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.Home, null, Modifier.size(20.dp))
-                Spacer(modifier = Modifier.size(8.dp))
+                Icon(Icons.Default.Home, null, Modifier.size(18.dp))
+                Spacer(modifier = Modifier.size(6.dp))
                 Text("Back to Home")
             }
             OutlinedButton(
                 onClick = onHistory,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.History, null, Modifier.size(20.dp))
-                Spacer(modifier = Modifier.size(8.dp))
+                Icon(Icons.Default.History, null, Modifier.size(18.dp))
+                Spacer(modifier = Modifier.size(6.dp))
                 Text("View History")
             }
         }
