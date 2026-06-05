@@ -17,6 +17,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -70,6 +71,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -254,81 +256,62 @@ fun ScanScreen(
                     }
                 }
             } else if (!uiState.isScanning) {
-                // Not scanning - show camera preview (if available) and bottom controls
-                // Camera preview is visible but not the main focus
-                CameraPreview(
-                    modifier = Modifier.fillMaxSize(),
-                    onCameraReady = { viewModel.onCameraReady() },
-                    onCameraError = { viewModel.onCameraError(it) }
-                )
-                
-                // Bottom card with "Start Scan" and "Gallery" buttons
-                Card(
+                // Pre-scan screen: Show placeholder, not camera
+                Column(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Icon(
+                        Icons.Default.Camera,
+                        contentDescription = null,
+                        modifier = Modifier.size(80.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Take a photo to grade your banana",
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            Icons.Default.Camera,
-                            contentDescription = null,
-                            modifier = Modifier.size(36.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Ready to Scan",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            if (uiState.scanMode == "batch") "Tap Start to capture up to 5 images" else "Tap Start to capture an image",
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Button(
+                            onClick = { viewModel.startScan() }
                         ) {
-                            Button(
-                                onClick = { viewModel.startScan() }
-                            ) {
-                                Icon(Icons.Default.Camera, null, Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.size(4.dp))
-                                Text("Start Scan")
-                            }
-                            FilledTonalButton(
-                                onClick = {
-                                    if (uiState.scanMode == "solo") {
-                                        singlePhotoPicker.launch(
-                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                        )
-                                    } else {
-                                        multiPhotoPicker.launch(
-                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                        )
-                                    }
+                            Icon(Icons.Default.Camera, null, Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.size(4.dp))
+                            Text("Take Photo")
+                        }
+                        FilledTonalButton(
+                            onClick = {
+                                if (uiState.scanMode == "solo") {
+                                    singlePhotoPicker.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                } else {
+                                    multiPhotoPicker.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
                                 }
-                            ) {
-                                Icon(Icons.Default.PhotoLibrary, null, Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.size(4.dp))
-                                Text("Gallery")
                             }
+                        ) {
+                            Icon(Icons.Default.PhotoLibrary, null, Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.size(4.dp))
+                            Text("Gallery")
                         }
                     }
                 }
             } else {
-                // Scanning mode - show camera preview and capture controls
+                // Scanning mode: Show camera and capture controls
                 CameraPreviewWithCapture(
                     isLoading = uiState.isLoading,
+                    isProcessing = uiState.isProcessing,
+                    inferenceProgress = uiState.inferenceProgress,
                     capturedCount = uiState.capturedCount,
                     maxCaptures = uiState.maxCaptures,
                     thumbnails = uiState.thumbnails,
@@ -353,59 +336,10 @@ fun ScanScreen(
 }
 
 @Composable
-fun CameraPreview(
-    modifier: Modifier = Modifier,
-    onCameraReady: () -> Unit,
-    onCameraError: (String) -> Unit
-) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val executor = remember { Executors.newSingleThreadExecutor() }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            executor.shutdown()
-        }
-    }
-
-    Box(modifier = modifier) {
-        androidx.compose.ui.viewinterop.AndroidView(
-            factory = { ctx ->
-                val previewView = PreviewView(ctx)
-                val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                cameraProviderFuture.addListener({
-                    try {
-                        val cameraProvider = cameraProviderFuture.get()
-                        val preview = Preview.Builder().build().also {
-                            it.setSurfaceProvider(previewView.surfaceProvider)
-                        }
-                        try {
-                            cameraProvider.unbindAll()
-                            cameraProvider.bindToLifecycle(
-                                lifecycleOwner,
-                                CameraSelector.DEFAULT_BACK_CAMERA,
-                                preview
-                            )
-                            onCameraReady()
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            onCameraError(e.message ?: "Failed to bind camera")
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        onCameraError(e.message ?: "Failed to initialize camera")
-                    }
-                }, ContextCompat.getMainExecutor(ctx))
-                previewView
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-    }
-}
-
-@Composable
 fun CameraPreviewWithCapture(
     isLoading: Boolean,
+    isProcessing: Boolean,
+    inferenceProgress: Float,
     capturedCount: Int,
     maxCaptures: Int,
     thumbnails: List<Bitmap>,
@@ -419,6 +353,9 @@ fun CameraPreviewWithCapture(
     val executor = remember { Executors.newSingleThreadExecutor() }
     val imageCapture = remember { mutableStateOf<ImageCapture?>(null) }
 
+    // Shutter flash effect
+    var showFlash by remember { mutableStateOf(false) }
+
     DisposableEffect(Unit) {
         onDispose {
             executor.shutdown()
@@ -426,6 +363,7 @@ fun CameraPreviewWithCapture(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // Camera preview
         androidx.compose.ui.viewinterop.AndroidView(
             factory = { ctx ->
                 val previewView = PreviewView(ctx)
@@ -463,6 +401,19 @@ fun CameraPreviewWithCapture(
             modifier = Modifier.fillMaxSize()
         )
 
+        // Shutter flash overlay
+        AnimatedVisibility(
+            visible = showFlash,
+            enter = fadeIn(animationSpec = tween(50)),
+            exit = fadeOut(animationSpec = tween(100))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White)
+            )
+        }
+
         // Bottom controls
         Column(
             modifier = Modifier
@@ -471,7 +422,33 @@ fun CameraPreviewWithCapture(
                 .padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (isLoading) {
+            // Progress indicator during inference
+            if (isProcessing && inferenceProgress > 0f) {
+                Card(
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        LinearProgressIndicator(
+                            progress = { inferenceProgress },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "${(inferenceProgress * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            } else if (isLoading) {
                 Card(
                     modifier = Modifier.padding(4.dp),
                     colors = CardDefaults.cardColors(
@@ -522,6 +499,9 @@ fun CameraPreviewWithCapture(
                         ) {
                             Button(
                                 onClick = {
+                                    // Trigger shutter flash
+                                    showFlash = true
+                                    
                                     val capture = imageCapture.value ?: return@Button
                                     val file = File(context.cacheDir, "capture_${System.currentTimeMillis()}.jpg")
                                     val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
@@ -533,14 +513,17 @@ fun CameraPreviewWithCapture(
                                                 val bitmap = BitmapFactory.decodeFile(file.absolutePath)
                                                 val rotated = rotateBitmapIfNeeded(bitmap, file.absolutePath)
                                                 onCapture(rotated)
+                                                // Turn off flash after capture
+                                                showFlash = false
                                             }
                                             override fun onError(exception: ImageCaptureException) {
                                                 exception.printStackTrace()
+                                                showFlash = false
                                             }
                                         }
                                     )
                                 },
-                                enabled = capturedCount < maxCaptures
+                                enabled = !isProcessing && capturedCount < maxCaptures
                             ) {
                                 Icon(Icons.Default.Camera, null, Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.size(4.dp))
@@ -548,7 +531,7 @@ fun CameraPreviewWithCapture(
                             }
                             FilledTonalButton(
                                 onClick = onPickGallery,
-                                enabled = capturedCount < maxCaptures
+                                enabled = !isProcessing && capturedCount < maxCaptures
                             ) {
                                 Icon(Icons.Default.PhotoLibrary, null, Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.size(4.dp))

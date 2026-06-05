@@ -1,5 +1,7 @@
 package com.example.fruitgrade.ui.screens
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,13 +14,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -42,12 +47,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.fruitgrade.data.ScanResult
 import com.example.fruitgrade.viewmodel.HistoryViewModel
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -78,7 +85,7 @@ fun HistoryScreen(onBack: () -> Unit) {
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -146,6 +153,9 @@ fun HistoryCard(scan: ScanResult, onDelete: () -> Unit) {
     val date = remember(scan.timestamp) {
         SimpleDateFormat("MMM dd, yyyy • HH:mm", Locale.getDefault()).format(Date(scan.timestamp))
     }
+    val imagePaths = remember(scan.previewImagePaths) {
+        scan.imagePathsList().filter { File(it).exists() }
+    }
 
     Card(
         onClick = { expanded = !expanded },
@@ -161,7 +171,7 @@ fun HistoryCard(scan: ScanResult, onDelete: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         date,
                         style = MaterialTheme.typography.labelSmall,
@@ -174,6 +184,22 @@ fun HistoryCard(scan: ScanResult, onDelete: () -> Unit) {
                         color = gradeColor(scan.finalGrade),
                         fontWeight = FontWeight.SemiBold
                     )
+                    // Show first image thumbnail if available
+                    if (imagePaths.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        val bitmap = remember(imagePaths[0]) {
+                            BitmapFactory.decodeFile(imagePaths[0])
+                        }
+                        bitmap?.let { bmp ->
+                            Image(
+                                bitmap = bmp.asImageBitmap(),
+                                contentDescription = "Preview",
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                            )
+                        }
+                    }
                 }
                 Box(
                     modifier = Modifier
@@ -222,6 +248,37 @@ fun HistoryCard(scan: ScanResult, onDelete: () -> Unit) {
 
             if (expanded) {
                 Spacer(modifier = Modifier.height(12.dp))
+                
+                // Show all preview images in a row
+                if (imagePaths.isNotEmpty()) {
+                    Text(
+                        "Captured Images:",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(imagePaths) { path ->
+                            val bitmap = remember(path) {
+                                BitmapFactory.decodeFile(path)
+                            }
+                            bitmap?.let { bmp ->
+                                Image(
+                                    bitmap = bmp.asImageBitmap(),
+                                    contentDescription = "Scan image",
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                
                 Divider()
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(

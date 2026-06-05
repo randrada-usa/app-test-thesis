@@ -16,7 +16,8 @@ data class ScanResult(
     val individualConfidences: String,
     val finalGrade: String,
     val finalConfidence: Float,
-    val methodUsed: String
+    val methodUsed: String,
+    val previewImagePaths: String = "[]"  // JSON array of image paths
 ) {
     companion object {
         fun fromPredictions(
@@ -27,7 +28,8 @@ data class ScanResult(
             predictions: List<Pair<String, Float>>,
             finalGrade: String,
             finalConfidence: Float,
-            methodUsed: String
+            methodUsed: String,
+            previewImagePaths: List<String> = emptyList()
         ): ScanResult {
             val grades = JSONArray()
             val confidences = JSONArray()
@@ -35,6 +37,8 @@ data class ScanResult(
                 grades.put(it.first)
                 confidences.put(it.second)
             }
+            val paths = JSONArray()
+            previewImagePaths.forEach { paths.put(it) }
             return ScanResult(
                 timestamp = timestamp,
                 modelName = modelName,
@@ -44,7 +48,8 @@ data class ScanResult(
                 individualConfidences = confidences.toString(),
                 finalGrade = finalGrade,
                 finalConfidence = finalConfidence,
-                methodUsed = methodUsed
+                methodUsed = methodUsed,
+                previewImagePaths = paths.toString()
             )
         }
     }
@@ -55,6 +60,15 @@ data class ScanResult(
         val list = mutableListOf<Pair<String, Float>>()
         for (i in 0 until grades.length()) {
             list.add(grades.getString(i) to confs.getDouble(i).toFloat())
+        }
+        return list
+    }
+
+    fun imagePathsList(): List<String> {
+        val paths = JSONArray(previewImagePaths)
+        val list = mutableListOf<String>()
+        for (i in 0 until paths.length()) {
+            list.add(paths.getString(i))
         }
         return list
     }
