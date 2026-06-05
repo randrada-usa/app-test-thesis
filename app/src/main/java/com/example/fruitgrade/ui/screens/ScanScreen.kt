@@ -8,6 +8,7 @@ import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
@@ -22,7 +23,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,12 +37,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -76,7 +76,6 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
 import com.example.fruitgrade.viewmodel.ScanViewModel
 import java.io.File
 import java.util.concurrent.Executors
@@ -193,7 +192,7 @@ fun ScanScreen(
                 title = { Text("Scan") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -245,16 +244,96 @@ fun ScanScreen(
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { viewModel.retryCamera() }
+                    ) {
+                        Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.size(4.dp))
+                        Text("Retry")
+                    }
+                }
+            } else if (!uiState.isScanning) {
+                // Not scanning - show camera preview (if available) and bottom controls
+                // Camera preview is visible but not the main focus
+                CameraPreview(
+                    modifier = Modifier.fillMaxSize(),
+                    onCameraReady = { viewModel.onCameraReady() },
+                    onCameraError = { viewModel.onCameraError(it) }
+                )
+                
+                // Bottom card with "Start Scan" and "Gallery" buttons
+                Card(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.Camera,
+                            contentDescription = null,
+                            modifier = Modifier.size(36.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Ready to Scan",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            if (uiState.scanMode == "batch") "Tap Start to capture up to 5 images" else "Tap Start to capture an image",
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { viewModel.startScan() }
+                            ) {
+                                Icon(Icons.Default.Camera, null, Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.size(4.dp))
+                                Text("Start Scan")
+                            }
+                            FilledTonalButton(
+                                onClick = {
+                                    if (uiState.scanMode == "solo") {
+                                        singlePhotoPicker.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    } else {
+                                        multiPhotoPicker.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    }
+                                }
+                            ) {
+                                Icon(Icons.Default.PhotoLibrary, null, Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.size(4.dp))
+                                Text("Gallery")
+                            }
+                        }
+                    }
                 }
             } else {
+                // Scanning mode - show camera preview and capture controls
                 CameraPreviewWithCapture(
-                    isScanning = uiState.isScanning,
+                    isLoading = uiState.isLoading,
                     capturedCount = uiState.capturedCount,
                     maxCaptures = uiState.maxCaptures,
                     thumbnails = uiState.thumbnails,
-                    isLoading = uiState.isLoading,
-                    isBatchMode = uiState.scanMode == "batch",
-                    onStartScan = { viewModel.startScan() },
+                    onCameraReady = { viewModel.onCameraReady() },
+                    onCameraError = { viewModel.onCameraError(it) },
                     onCapture = { bitmap -> viewModel.captureImage(bitmap) },
                     onPickGallery = {
                         if (uiState.scanMode == "solo") {
@@ -274,14 +353,64 @@ fun ScanScreen(
 }
 
 @Composable
+fun CameraPreview(
+    modifier: Modifier = Modifier,
+    onCameraReady: () -> Unit,
+    onCameraError: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val executor = remember { Executors.newSingleThreadExecutor() }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            executor.shutdown()
+        }
+    }
+
+    Box(modifier = modifier) {
+        androidx.compose.ui.viewinterop.AndroidView(
+            factory = { ctx ->
+                val previewView = PreviewView(ctx)
+                val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+                cameraProviderFuture.addListener({
+                    try {
+                        val cameraProvider = cameraProviderFuture.get()
+                        val preview = Preview.Builder().build().also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
+                        }
+                        try {
+                            cameraProvider.unbindAll()
+                            cameraProvider.bindToLifecycle(
+                                lifecycleOwner,
+                                CameraSelector.DEFAULT_BACK_CAMERA,
+                                preview
+                            )
+                            onCameraReady()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            onCameraError(e.message ?: "Failed to bind camera")
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        onCameraError(e.message ?: "Failed to initialize camera")
+                    }
+                }, ContextCompat.getMainExecutor(ctx))
+                previewView
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
 fun CameraPreviewWithCapture(
-    isScanning: Boolean,
+    isLoading: Boolean,
     capturedCount: Int,
     maxCaptures: Int,
     thumbnails: List<Bitmap>,
-    isLoading: Boolean,
-    isBatchMode: Boolean,
-    onStartScan: () -> Unit,
+    onCameraReady: () -> Unit,
+    onCameraError: (String) -> Unit,
     onCapture: (Bitmap) -> Unit,
     onPickGallery: () -> Unit
 ) {
@@ -302,24 +431,31 @@ fun CameraPreviewWithCapture(
                 val previewView = PreviewView(ctx)
                 val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                 cameraProviderFuture.addListener({
-                    val cameraProvider = cameraProviderFuture.get()
-                    val preview = Preview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
-                    val capture = ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                        .build()
-                    imageCapture.value = capture
                     try {
-                        cameraProvider.unbindAll()
-                        cameraProvider.bindToLifecycle(
-                            lifecycleOwner as LifecycleOwner,
-                            CameraSelector.DEFAULT_BACK_CAMERA,
-                            preview,
-                            capture
-                        )
+                        val cameraProvider = cameraProviderFuture.get()
+                        val preview = Preview.Builder().build().also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
+                        }
+                        val capture = ImageCapture.Builder()
+                            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                            .build()
+                        imageCapture.value = capture
+                        try {
+                            cameraProvider.unbindAll()
+                            cameraProvider.bindToLifecycle(
+                                lifecycleOwner,
+                                CameraSelector.DEFAULT_BACK_CAMERA,
+                                preview,
+                                capture
+                            )
+                            onCameraReady()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            onCameraError(e.message ?: "Failed to bind camera")
+                        }
                     } catch (e: Exception) {
                         e.printStackTrace()
+                        onCameraError(e.message ?: "Failed to initialize camera")
                     }
                 }, ContextCompat.getMainExecutor(ctx))
                 previewView
@@ -327,165 +463,115 @@ fun CameraPreviewWithCapture(
             modifier = Modifier.fillMaxSize()
         )
 
-        if (!isScanning) {
-            AnimatedVisibility(
-                visible = !isScanning,
-                enter = fadeIn(animationSpec = tween(300)) + scaleIn(animationSpec = tween(300)),
-                exit = fadeOut(animationSpec = tween(300))
-            ) {
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
+        // Bottom controls
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (isLoading) {
+                Card(
+                    modifier = Modifier.padding(4.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                    )
                 ) {
-                    Card(
-                        modifier = Modifier.padding(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                        )
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(36.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Processing...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            } else {
+                Card(
+                    modifier = Modifier.padding(4.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "Image $capturedCount / $maxCaptures",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        if (maxCaptures > 1) {
+                            LinearProgressIndicator(
+                                progress = { capturedCount.toFloat() / maxCaptures },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                Icons.Default.Camera,
-                                contentDescription = null,
-                                modifier = Modifier.size(36.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "Ready to Scan",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                if (isBatchMode) "Tap Start to capture up to 5 images" else "Tap Start to capture an image",
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
                             Button(
-                                onClick = onStartScan
+                                onClick = {
+                                    val capture = imageCapture.value ?: return@Button
+                                    val file = File(context.cacheDir, "capture_${System.currentTimeMillis()}.jpg")
+                                    val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
+                                    capture.takePicture(
+                                        outputOptions,
+                                        executor,
+                                        object : ImageCapture.OnImageSavedCallback {
+                                            override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                                                val bitmap = BitmapFactory.decodeFile(file.absolutePath)
+                                                val rotated = rotateBitmapIfNeeded(bitmap, file.absolutePath)
+                                                onCapture(rotated)
+                                            }
+                                            override fun onError(exception: ImageCaptureException) {
+                                                exception.printStackTrace()
+                                            }
+                                        }
+                                    )
+                                },
+                                enabled = capturedCount < maxCaptures
                             ) {
                                 Icon(Icons.Default.Camera, null, Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.size(4.dp))
-                                Text("Start Scan")
+                                Text("Capture")
+                            }
+                            FilledTonalButton(
+                                onClick = onPickGallery,
+                                enabled = capturedCount < maxCaptures
+                            ) {
+                                Icon(Icons.Default.PhotoLibrary, null, Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.size(4.dp))
+                                Text("Gallery")
                             }
                         }
                     }
                 }
             }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                if (isLoading) {
-                    Card(
-                        modifier = Modifier.padding(4.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+            if (thumbnails.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(thumbnails) { bitmap ->
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = "Captured",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.surface)
                         )
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(36.dp),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                "Processing...",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                } else {
-                    Card(
-                        modifier = Modifier.padding(4.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                "Image $capturedCount / $maxCaptures",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            if (maxCaptures > 1) {
-                                LinearProgressIndicator(
-                                    progress = { capturedCount.toFloat() / maxCaptures },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp),
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Button(
-                                    onClick = {
-                                        val capture = imageCapture.value ?: return@Button
-                                        val file = File(context.cacheDir, "capture_${System.currentTimeMillis()}.jpg")
-                                        val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
-                                        capture.takePicture(
-                                            outputOptions,
-                                            executor,
-                                            object : ImageCapture.OnImageSavedCallback {
-                                                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                                                    val bitmap = BitmapFactory.decodeFile(file.absolutePath)
-                                                    val rotated = rotateBitmapIfNeeded(bitmap, file.absolutePath)
-                                                    onCapture(rotated)
-                                                }
-                                                override fun onError(exception: ImageCaptureException) {
-                                                    exception.printStackTrace()
-                                                }
-                                            }
-                                        )
-                                    },
-                                    enabled = capturedCount < maxCaptures
-                                ) {
-                                    Icon(Icons.Default.Camera, null, Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.size(4.dp))
-                                    Text("Capture")
-                                }
-                                FilledTonalButton(
-                                    onClick = onPickGallery,
-                                    enabled = capturedCount < maxCaptures
-                                ) {
-                                    Icon(Icons.Default.PhotoLibrary, null, Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.size(4.dp))
-                                    Text("Gallery")
-                                }
-                            }
-                        }
-                    }
-                }
-                if (thumbnails.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        items(thumbnails) { bitmap ->
-                            Image(
-                                bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "Captured",
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(MaterialTheme.colorScheme.surface)
-                            )
-                        }
                     }
                 }
             }

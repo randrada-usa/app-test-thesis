@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class ScanUiState(
     val modelName: String = "small_model.tflite",
@@ -26,7 +27,8 @@ data class ScanUiState(
     val result: ScanResult? = null,
     val durationMs: Long = 0,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val cameraReady: Boolean = false
 )
 
 class ScanViewModel(application: Application) : AndroidViewModel(application) {
@@ -52,14 +54,33 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     fun startScan() {
         startTime = System.currentTimeMillis()
         classifier?.close()
-        classifier = TFLiteClassifier(getApplication(), _uiState.value.modelName)
         _uiState.value = _uiState.value.copy(
             isScanning = true,
             capturedCount = 0,
             thumbnails = emptyList(),
             result = null,
             durationMs = 0,
-            error = null
+            error = null,
+            cameraReady = false
+        )
+    }
+
+    fun onCameraReady() {
+        _uiState.value = _uiState.value.copy(cameraReady = true)
+    }
+
+    fun onCameraError(error: String) {
+        _uiState.value = _uiState.value.copy(
+            isScanning = false,
+            error = "Camera error: $error"
+        )
+    }
+
+    fun retryCamera() {
+        _uiState.value = _uiState.value.copy(
+            isScanning = false,
+            error = null,
+            cameraReady = false
         )
     }
 
@@ -81,6 +102,11 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(isLoading = true)
         viewModelScope.launch(Dispatchers.Default) {
             try {
+                // Create classifier if needed (should already be created in startScan)
+                if (classifier == null) {
+                    classifier = TFLiteClassifier(getApplication(), _uiState.value.modelName)
+                }
+                
                 val predictions = bitmaps.map { bitmap ->
                     val buffer = preprocessor.preprocess(bitmap)
                     classifier?.classify(buffer) ?: ("unknown" to 0f)
@@ -113,7 +139,8 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                     isScanning = false,
                     isLoading = false,
                     result = scan.copy(id = id),
-                    durationMs = duration
+                    durationMs = duration,
+                    cameraReady = false
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -125,11 +152,16 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun runGalleryInference(bitmaps: List<Bitmap>) {
-        startScan()
-        val current = _uiState.value
-        _uiState.value = current.copy(
+        startTime = System.currentTimeMillis()
+        classifier?.close()
+        _uiState.value = _uiState.value.copy(
+            isScanning = true,
             capturedCount = bitmaps.size,
-            thumbnails = bitmaps
+            thumbnails = bitmaps,
+            result = null,
+            durationMs = 0,
+            error = null,
+            cameraReady = true
         )
         runInference(bitmaps)
     }
