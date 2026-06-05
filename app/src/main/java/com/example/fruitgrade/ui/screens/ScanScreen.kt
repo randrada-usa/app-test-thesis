@@ -18,7 +18,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,8 +29,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,11 +47,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import com.example.fruitgrade.R
 import com.example.fruitgrade.viewmodel.ScanViewModel
 import java.io.File
 import java.util.concurrent.Executors
@@ -94,8 +91,8 @@ fun ScanScreen(
             TopAppBar(
                 title = { Text("Scan") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(painterResource(R.drawable.ic_launcher_foreground), contentDescription = "Back")
+                    TextButton(onClick = onBack) {
+                        Text("Back")
                     }
                 }
             )
@@ -109,6 +106,12 @@ fun ScanScreen(
             if (!hasPermission) {
                 Text(
                     "Camera permission is required.",
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else if (uiState.error != null) {
+                Text(
+                    "Error: ${uiState.error}",
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.error,
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else {

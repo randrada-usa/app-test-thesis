@@ -12,8 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -28,10 +27,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.fruitgrade.R
 import com.example.fruitgrade.data.ScanResult
 import com.example.fruitgrade.viewmodel.HistoryViewModel
 import java.text.SimpleDateFormat
@@ -53,8 +50,8 @@ fun HistoryScreen(onBack: () -> Unit) {
             TopAppBar(
                 title = { Text("History") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(painterResource(R.drawable.ic_launcher_foreground), contentDescription = "Back")
+                    TextButton(onClick = onBack) {
+                        Text("Back")
                     }
                 }
             )
@@ -115,12 +112,8 @@ fun HistoryCard(scan: ScanResult, onDelete: () -> Unit) {
                     Text("  Image ${index + 1}: ${gradeLabel(pair.first)} (${"%.1f".format(pair.second * 100)}%)")
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        painterResource(R.drawable.ic_launcher_foreground),
-                        contentDescription = "Delete",
-                        tint = Color.Red
-                    )
+                TextButton(onClick = onDelete) {
+                    Text("Delete", color = Color.Red)
                 }
             }
         }
