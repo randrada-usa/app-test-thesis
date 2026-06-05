@@ -27,10 +27,10 @@ An Android proof-of-concept application for grading banana ripeness using on-dev
 
 | Grade | Label | Display Color |
 |-------|-------|---------------|
-| G1 | Unripe | Brown |
-| G2 | Ripe | Green |
-| G3 | Overripe | Yellow |
-| G4 | Rotten | Red |
+| G1    | Unripe| Brown         |
+| G2    | Ripe  | Green         |
+| G3    | Overripe| Yellow      |
+| G4    | Rotten| Red           |
 
 ## Project Structure
 
