@@ -58,7 +58,6 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startScan() {
-        startTime = System.currentTimeMillis()
         _uiState.value = _uiState.value.copy(
             isScanning = true,
             capturedCount = 0,
@@ -111,6 +110,9 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(isProcessing = true, isLoading = true, inferenceProgress = 0f)
         viewModelScope.launch(Dispatchers.Default) {
             try {
+                // Start timing ONLY when inference begins
+                startTime = System.currentTimeMillis()
+
                 // Create classifier if not already created (reuse across scans)
                 if (classifier == null) {
                     classifier = TFLiteClassifier(getApplication(), _uiState.value.modelName)
@@ -192,7 +194,6 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun runGalleryInference(bitmaps: List<Bitmap>) {
-        startTime = System.currentTimeMillis()
         _uiState.value = _uiState.value.copy(
             isScanning = true,
             capturedCount = bitmaps.size,
