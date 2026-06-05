@@ -4,6 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -24,8 +29,15 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val viewModel: ScanViewModel = viewModel()
 
-                NavHost(navController = navController, startDestination = "home") {
-                    composable("home") {
+                NavHost(
+                    navController = navController,
+                    startDestination = "home"
+                ) {
+                    composable(
+                        "home",
+                        enterTransition = { fadeIn(animationSpec = tween(300)) },
+                        exitTransition = { fadeOut(animationSpec = tween(300)) }
+                    ) {
                         HomeScreen(
                             onScan = { model, mode ->
                                 viewModel.setModelAndMode(model, mode)
@@ -34,21 +46,60 @@ class MainActivity : ComponentActivity() {
                             onHistory = { navController.navigate("history") }
                         )
                     }
-                    composable("scan") {
+                    composable(
+                        "scan",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec = tween(300)
+                            ) + fadeIn(animationSpec = tween(300))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { -it },
+                                animationSpec = tween(300)
+                            ) + fadeOut(animationSpec = tween(300))
+                        }
+                    ) {
                         ScanScreen(
                             viewModel = viewModel,
                             onResult = { navController.navigate("result") },
                             onBack = { navController.popBackStack() }
                         )
                     }
-                    composable("result") {
+                    composable(
+                        "result",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec = tween(300)
+                            ) + fadeIn(animationSpec = tween(300))
+                        },
+                        exitTransition = {
+                            fadeOut(animationSpec = tween(300))
+                        }
+                    ) {
                         ResultScreen(
                             viewModel = viewModel,
                             onHome = { navController.popBackStack("home", false) },
                             onHistory = { navController.navigate("history") }
                         )
                     }
-                    composable("history") {
+                    composable(
+                        "history",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec = tween(300)
+                            ) + fadeIn(animationSpec = tween(300))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec = tween(300)
+                            ) + fadeOut(animationSpec = tween(300))
+                        }
+                    ) {
                         HistoryScreen(onBack = { navController.popBackStack() })
                     }
                 }

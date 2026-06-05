@@ -124,6 +124,16 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun runGalleryInference(bitmaps: List<Bitmap>) {
+        startScan()
+        val current = _uiState.value
+        _uiState.value = current.copy(
+            capturedCount = bitmaps.size,
+            thumbnails = bitmaps
+        )
+        runInference(bitmaps)
+    }
+
     fun reset() {
         classifier?.close()
         classifier = null
