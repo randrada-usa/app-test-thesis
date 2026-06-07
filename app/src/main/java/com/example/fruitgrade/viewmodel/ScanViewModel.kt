@@ -22,6 +22,8 @@ import java.io.FileOutputStream
 import java.util.UUID
 
 data class ScanUiState(
+    val fruitName: String = "",
+    val fruitScientificName: String = "",
     val modelName: String = "small_model.tflite",
     val scanMode: String = "solo",
     val isScanning: Boolean = false,
@@ -48,9 +50,16 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
     private var startTime: Long = 0
 
-    fun setModelAndMode(modelName: String, mode: String) {
+    fun setModelAndMode(
+        fruitName: String,
+        fruitScientificName: String,
+        modelName: String,
+        mode: String
+    ) {
         val max = if (mode == "solo") 1 else 5
         _uiState.value = ScanUiState(
+            fruitName = fruitName,
+            fruitScientificName = fruitScientificName,
             modelName = modelName,
             scanMode = mode,
             maxCaptures = max

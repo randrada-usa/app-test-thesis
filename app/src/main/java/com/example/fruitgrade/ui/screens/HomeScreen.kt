@@ -151,7 +151,7 @@ private val modeOptions = listOf(
 
 @Composable
 fun HomeScreen(
-    onScan: (modelName: String, mode: String) -> Unit,
+    onScan: (fruitName: String, scientificName: String, modelName: String, mode: String) -> Unit,
     onHistory: () -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -262,7 +262,7 @@ fun HomeScreen(
             onDismiss = { selectedFruit = null },
             onConfirm = { modelName, mode ->
                 selectedFruit = null
-                onScan(modelName, mode)
+                onScan(fruit.name, fruit.scientificName, modelName, mode)
             }
         )
     }
@@ -730,7 +730,7 @@ private fun HomeBottomNavigation(
             onClick = { onItemSelected("result") },
             icon = {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_result),
+                    painter = painterResource(id = R.drawable.result),
                     contentDescription = "Result",
                     modifier = Modifier.size(24.dp),
                     colorFilter = ColorFilter.tint(

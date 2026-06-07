@@ -39,8 +39,8 @@ class MainActivity : ComponentActivity() {
                         exitTransition = { fadeOut(animationSpec = tween(300)) }
                     ) {
                         HomeScreen(
-                            onScan = { model, mode ->
-                                viewModel.setModelAndMode(model, mode)
+                            onScan = { fruitName, scientificName, model, mode ->
+                                viewModel.setModelAndMode(fruitName, scientificName, model, mode)
                                 navController.navigate("scan")
                             },
                             onHistory = { navController.navigate("history") }
