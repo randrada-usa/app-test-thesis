@@ -1,10 +1,14 @@
 package com.example.fruitgrade.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,27 +19,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -43,233 +43,478 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.fruitgrade.R
+import com.example.fruitgrade.ui.theme.FreshGreen
+import com.example.fruitgrade.ui.theme.FreshGreenDark
 import com.example.fruitgrade.viewmodel.ScanViewModel
+
+// ---------------------------------------------------------------------------
+// Grade helpers
+// ---------------------------------------------------------------------------
 
 fun gradeColor(grade: String): Color {
     return when (grade) {
-        "unripe" -> Color(0xFF8B4513)
-        "ripe" -> Color(0xFF2E7D32)
-        "overripe" -> Color(0xFFF57F17)
-        "rotten" -> Color(0xFFD32F2F)
+        "unripe" -> Color(0xFF2E7D32)   // Green
+        "ripe" -> Color(0xFF1565C0)     // Blue
+        "overripe" -> Color(0xFFF57F17) // Amber
+        "rotten" -> Color(0xFFD32F2F)   // Red
         else -> Color.Gray
     }
 }
 
 fun gradeLabel(grade: String): String {
     return when (grade) {
-        "unripe" -> "Grade 1 — Unripe"
-        "ripe" -> "Grade 2 — Ripe"
-        "overripe" -> "Grade 3 — Overripe"
-        "rotten" -> "Grade 4 — Rotten"
+        "unripe" -> "Grade 1 – Unripe"
+        "ripe" -> "Grade 2 – Ripe"
+        "overripe" -> "Grade 3 – Overripe"
+        "rotten" -> "Grade 4 – Rotten"
         else -> grade
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private fun gradeShortLabel(grade: String): String {
+    return when (grade) {
+        "unripe" -> "G1"
+        "ripe" -> "G2"
+        "overripe" -> "G3"
+        "rotten" -> "G4"
+        else -> "?"
+    }
+}
+
+private fun gradeNameOnly(grade: String): String {
+    return when (grade) {
+        "unripe" -> "Unripe"
+        "ripe" -> "Ripe"
+        "overripe" -> "Overripe"
+        "rotten" -> "Rotten"
+        else -> grade.replaceFirstChar { it.uppercase() }
+    }
+}
+
+private fun gradeBgColor(grade: String): Color {
+    return when (grade) {
+        "unripe" -> Color(0xFFE8F5E9)
+        "ripe" -> Color(0xFFE3F2FD)
+        "overripe" -> Color(0xFFFFF8E1)
+        "rotten" -> Color(0xFFFCE4EC)
+        else -> Color(0xFFF5F5F5)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// ResultScreen
+// ---------------------------------------------------------------------------
+
 @Composable
 fun ResultScreen(
     viewModel: ScanViewModel,
     onHome: () -> Unit,
-    onHistory: () -> Unit
+    onHistory: () -> Unit,
+    onRetry: (() -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val result = uiState.result
     val scrollState = rememberScrollState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Scan Result") },
-                navigationIcon = {
-                    IconButton(onClick = onHome) {
-                        Icon(Icons.Default.Home, contentDescription = "Home")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
-    ) { padding ->
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .verticalScroll(scrollState),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(44.dp))
+
+        // ── View History button (top-right) ──
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            contentAlignment = Alignment.CenterEnd
         ) {
-            if (result != null) {
-                AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn(animationSpec = tween(500)) + scaleIn(
-                        animationSpec = tween(500),
-                        initialScale = 0.8f
-                    )
+            Button(
+                onClick = onHistory,
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = FreshGreen),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 2.dp,
+                    pressedElevation = 0.dp
+                ),
+                modifier = Modifier.height(36.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.history),
+                    contentDescription = null,
+                    modifier = Modifier.size(15.dp),
+                    colorFilter = ColorFilter.tint(Color.White)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "View History",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        if (result != null) {
+            val gc = gradeColor(result.finalGrade)
+            val predictions = result.predictionsList()
+            val isBatch = predictions.size > 1
+
+            // ──────────────────────────────────────────
+            //  Hero grade card
+            // ──────────────────────────────────────────
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = tween(500)) + scaleIn(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    initialScale = 0.85f
+                )
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = gradeBgColor(result.finalGrade)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = gradeColor(result.finalGrade).copy(alpha = 0.12f)
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                width = 1.5.dp,
+                                color = gc.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                            .padding(
+                                vertical = if (isBatch) 18.dp else 24.dp,
+                                horizontal = 20.dp
+                            ),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            // Large grade badge
+                        // "Dominant Grade  •  Majority Vote"
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Dominant Grade",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF424242),
+                                    fontSize = 13.sp
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
-                                    .size(64.dp)
+                                    .size(6.dp)
                                     .clip(CircleShape)
-                                    .background(gradeColor(result.finalGrade)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = when (result.finalGrade) {
-                                        "unripe" -> "G1"
-                                        "ripe" -> "G2"
-                                        "overripe" -> "G3"
-                                        "rotten" -> "G4"
-                                        else -> "?"
-                                    },
-                                    style = MaterialTheme.typography.headlineMedium,
+                                    .background(gc)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Majority Vote",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF424242),
+                                    fontSize = 13.sp
+                                )
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(if (isBatch) 10.dp else 14.dp))
+
+                        // Large grade badge
+                        Box(
+                            modifier = Modifier
+                                .size(if (isBatch) 64.dp else 76.dp)
+                                .clip(CircleShape)
+                                .background(gc),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = gradeShortLabel(result.finalGrade),
+                                style = MaterialTheme.typography.headlineLarge.copy(
+                                    fontWeight = FontWeight.ExtraBold,
                                     color = Color.White,
-                                    fontWeight = FontWeight.Bold
+                                    fontSize = if (isBatch) 28.sp else 34.sp
                                 )
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                gradeLabel(result.finalGrade),
-                                style = MaterialTheme.typography.titleLarge,
-                                color = gradeColor(result.finalGrade),
-                                fontWeight = FontWeight.Bold
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                "${"%.1f".format(result.finalConfidence * 100)}% Confidence",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+
+                        Spacer(modifier = Modifier.height(if (isBatch) 6.dp else 10.dp))
+
+                        // Grade name
+                        Text(
+                            text = gradeNameOnly(result.finalGrade),
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFF1B1B1F),
+                                fontSize = if (isBatch) 20.sp else 22.sp
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            SuggestionChip(
-                                onClick = { },
-                                label = {
-                                    Text(
-                                        result.methodUsed.replace("_", " ").uppercase(),
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
+                        )
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        // Confidence
+                        Text(
+                            text = "${"%.1f".format(result.finalConfidence * 100)}% Confidence",
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = gc,
+                                fontSize = 16.sp
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(if (isBatch) 6.dp else 10.dp))
+
+                        // Mode chip
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(gc.copy(alpha = 0.15f))
+                                .padding(horizontal = 18.dp, vertical = 5.dp)
+                        ) {
+                            Text(
+                                text = result.scanMode.uppercase(),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = gc,
+                                    letterSpacing = 1.2.sp,
+                                    fontSize = 11.sp
+                                )
                             )
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(if (isBatch) 14.dp else 20.dp))
 
-                // Metadata section
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            "Scan Details",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
+            // ──────────────────────────────────────────
+            //  Scan Details card
+            // ──────────────────────────────────────────
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFFE0E0E0),
+                            shape = RoundedCornerShape(16.dp)
                         )
-                        Divider()
-                        InfoRow(icon = Icons.Default.Timer, label = "Duration", value = "${result.durationMs} ms")
-                        InfoRow(icon = Icons.Default.History, label = "Model", value = result.modelName)
-                        InfoRow(icon = Icons.Default.History, label = "Mode", value = result.scanMode)
-                    }
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Scan Details",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF212121),
+                            fontSize = 15.sp
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(1.dp))
+
+                    // Duration — timer icon
+                    DetailRowIcon(
+                        icon = Icons.Default.Timer,
+                        label = "Duration:",
+                        value = "${result.durationMs} MS"
+                    )
+
+                    // Model — custom history icon (reusing as model icon)
+                    DetailRowDrawable(
+                        drawableRes = R.drawable.history,
+                        label = "Model:",
+                        value = result.modelName.replaceFirstChar { it.uppercase() }
+                    )
+
+                    // Mode — custom modescan icon
+                    DetailRowDrawable(
+                        drawableRes = R.drawable.modescan,
+                        label = "Mode:",
+                        value = result.scanMode.replaceFirstChar { it.uppercase() }
+                    )
                 }
+            }
 
-                // Individual predictions
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            "Individual Predictions",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
+            Spacer(modifier = Modifier.height(if (isBatch) 10.dp else 12.dp))
+
+            // ──────────────────────────────────────────
+            //  Individual Predictions card
+            // ──────────────────────────────────────────
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFFE0E0E0),
+                            shape = RoundedCornerShape(16.dp)
                         )
-                        Divider()
-                        result.predictionsList().forEachIndexed { index, pair ->
-                            val label = gradeLabel(pair.first)
-                            val color = gradeColor(pair.first)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(color)
-                                    )
-                                    Spacer(modifier = Modifier.size(8.dp))
-                                    Text("Image ${index + 1}: $label", style = MaterialTheme.typography.bodySmall)
-                                }
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (isBatch) 4.dp else 6.dp)
+                ) {
+                    Text(
+                        text = "Individual Predictions",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF212121),
+                            fontSize = 15.sp
+                        )
+                    )
+
+                    predictions.forEachIndexed { index, pair ->
+                        val predLabel = "Grade ${gradeShortLabel(pair.first).last()} –  ${gradeNameOnly(pair.first)}"
+                        val predColor = gradeColor(pair.first)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(predColor)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "${"%.1f".format(pair.second * 100)}%",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium
+                                    text = "Image ${index + 1}: $predLabel",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        color = Color(0xFF424242),
+                                        fontSize = 13.sp
+                                    )
                                 )
                             }
+                            Text(
+                                text = "${"%.1f".format(pair.second * 100)}%",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF424242),
+                                    fontSize = 13.sp
+                                )
+                            )
                         }
                     }
                 }
-            } else {
-                Text(
-                    "No result available",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
-                )
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                onClick = onHome,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Home, null, Modifier.size(18.dp))
-                Spacer(modifier = Modifier.size(6.dp))
-                Text("Back to Home")
-            }
-            OutlinedButton(
-                onClick = onHistory,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.History, null, Modifier.size(18.dp))
-                Spacer(modifier = Modifier.size(6.dp))
-                Text("View History")
-            }
+        } else {
+            Spacer(modifier = Modifier.height(48.dp))
+            Text(
+                "No result available",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = Color(0xFF9E9E9E)
+            )
         }
+
+        Spacer(modifier = Modifier.height(if (result != null && result.predictionsList().size > 1) 16.dp else 24.dp))
+
+        // ──────────────────────────────────────────
+        //  Action buttons
+        // ──────────────────────────────────────────
+
+        // Back to Home
+        Button(
+            onClick = onHome,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .height(50.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = FreshGreen),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 2.dp,
+                pressedElevation = 0.dp
+            )
+        ) {
+            Icon(
+                Icons.Default.Home,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = Color.White
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "Back to Home",
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = Color.White
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Retry
+        OutlinedButton(
+            onClick = { onRetry?.invoke() ?: onHome() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .height(50.dp),
+            shape = RoundedCornerShape(16.dp),
+            border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = FreshGreenDark)
+        ) {
+            Icon(
+                Icons.Default.Refresh,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = FreshGreenDark
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "Retry",
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = FreshGreenDark
+            )
+        }
+
+        Spacer(modifier = Modifier.height(28.dp))
     }
 }
 
+// ---------------------------------------------------------------------------
+// Detail row with Material icon
+// ---------------------------------------------------------------------------
+
 @Composable
-private fun InfoRow(
+private fun DetailRowIcon(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     value: String
@@ -281,19 +526,65 @@ private fun InfoRow(
         Icon(
             icon,
             contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            modifier = Modifier.size(18.dp),
+            tint = FreshGreen
         )
-        Spacer(modifier = Modifier.size(8.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
-            "$label: ",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = label,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = Color(0xFF757575),
+                fontSize = 14.sp
+            )
         )
+        Spacer(modifier = Modifier.width(4.dp))
         Text(
-            value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
+            text = value,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF212121),
+                fontSize = 14.sp
+            )
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Detail row with drawable resource icon
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun DetailRowDrawable(
+    drawableRes: Int,
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            painter = painterResource(id = drawableRes),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            colorFilter = ColorFilter.tint(FreshGreen)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = Color(0xFF757575),
+                fontSize = 14.sp
+            )
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF212121),
+                fontSize = 14.sp
+            )
         )
     }
 }

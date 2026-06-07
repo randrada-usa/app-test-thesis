@@ -1,0 +1,31 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Papaya body -->
+    <path
+        android:fillColor="#FF8A65"
+        android:pathData="M24,4C16,4 10,10 8,18C6,26 8,36 16,42C20,44 28,44 32,42C40,36 42,26 40,18C38,10 32,4 24,4Z" />
+    <!-- Inner flesh -->
+    <path
+        android:fillColor="#FFAB91"
+        android:pathData="M24,8C18,8 14,12 12,18C10,24 12,34 18,38C22,40 26,40 30,38C36,34 38,24 36,18C34,12 30,8 24,8Z" />
+    <!-- Seeds -->
+    <path
+        android:fillColor="#4E342E"
+        android:pathData="M22,20A1.5,1.5 0,0 1,25,20A1.5,1.5 0,0 1,22,20Z" />
+    <path
+        android:fillColor="#4E342E"
+        android:pathData="M20,25A1.5,1.5 0,0 1,23,25A1.5,1.5 0,0 1,20,25Z" />
+    <path
+        android:fillColor="#4E342E"
+        android:pathData="M25,25A1.5,1.5 0,0 1,28,25A1.5,1.5 0,0 1,25,25Z" />
+    <path
+        android:fillColor="#4E342E"
+        android:pathData="M22,30A1.5,1.5 0,0 1,25,30A1.5,1.5 0,0 1,22,30Z" />
+    <!-- Stem -->
+    <path
+        android:fillColor="#558B2F"
+        android:pathData="M24,4C24,4 24,1 26,0C26,2 25,3 24,4Z" />
+</vector>

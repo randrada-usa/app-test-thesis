@@ -17,7 +17,9 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -75,6 +77,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
@@ -112,6 +116,47 @@ fun ScanScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+
+    // Shared camera capture state — lifted here so the shutter button can trigger capture
+    val imageCapture = remember { mutableStateOf<ImageCapture?>(null) }
+    val executor = remember { Executors.newSingleThreadExecutor() }
+    var showFlash by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        onDispose { executor.shutdown() }
+    }
+
+    // Reusable capture action — shared by viewfinder tap and shutter button
+    val performCapture: () -> Unit = {
+        val capture = imageCapture.value
+        if (capture != null && !uiState.isProcessing) {
+            showFlash = true
+            val file = File(
+                context.cacheDir,
+                "capture_${System.currentTimeMillis()}.jpg"
+            )
+            val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
+            capture.takePicture(
+                outputOptions,
+                executor,
+                object : ImageCapture.OnImageSavedCallback {
+                    override fun onImageSaved(
+                        output: ImageCapture.OutputFileResults
+                    ) {
+                        val bitmap = BitmapFactory.decodeFile(file.absolutePath)
+                        val rotated = rotateBitmapIfNeeded(bitmap, file.absolutePath)
+                        viewModel.captureImage(rotated)
+                        showFlash = false
+                    }
+
+                    override fun onError(exception: ImageCaptureException) {
+                        exception.printStackTrace()
+                        showFlash = false
+                    }
+                }
+            )
+        }
+    }
 
     // Camera permission
     var hasPermission by remember {
@@ -177,9 +222,11 @@ fun ScanScreen(
 
     Scaffold(
         containerColor = Color.White,
+        /* bottomBar temporarily disabled
         bottomBar = {
             ScanBottomNavigation(selectedRoute = "scan")
         }
+        */
     ) { padding ->
         Column(
             modifier = Modifier
@@ -235,13 +282,15 @@ fun ScanScreen(
                     inferenceProgress = uiState.inferenceProgress,
                     cameraReady = uiState.cameraReady,
                     error = uiState.error,
+                    imageCapture = imageCapture,
+                    showFlash = showFlash,
                     onCameraReady = { viewModel.onCameraReady() },
                     onCameraError = { viewModel.onCameraError(it) },
-                    onCapture = { bitmap -> viewModel.captureImage(bitmap) },
+                    onCapture = performCapture,
                     onRetry = { viewModel.retryCamera(); viewModel.startScan() }
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Captured samples (batch only — solo fills automatically)
                 if (!isSolo) {
@@ -260,7 +309,7 @@ fun ScanScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // ──────────────────────────────────────────────
             //  Photo guidelines
@@ -268,6 +317,19 @@ fun ScanScreen(
             PhotoGuidelinesSection()
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            // ──────────────────────────────────────────────
+            //  Shutter capture button
+            // ──────────────────────────────────────────────
+            if (!showMethodSelection) {
+                ShutterCaptureButton(
+                    enabled = uiState.isScanning && uiState.cameraReady && !uiState.isProcessing && uiState.error == null,
+                    isProcessing = uiState.isProcessing,
+                    onCapture = performCapture
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
@@ -482,20 +544,14 @@ private fun CameraViewfinder(
     inferenceProgress: Float,
     cameraReady: Boolean,
     error: String?,
+    imageCapture: androidx.compose.runtime.MutableState<ImageCapture?>,
+    showFlash: Boolean,
     onCameraReady: () -> Unit,
     onCameraError: (String) -> Unit,
-    onCapture: (Bitmap) -> Unit,
+    onCapture: () -> Unit,
     onRetry: () -> Unit
 ) {
-    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val executor = remember { Executors.newSingleThreadExecutor() }
-    val imageCapture = remember { mutableStateOf<ImageCapture?>(null) }
-    var showFlash by remember { mutableStateOf(false) }
-
-    DisposableEffect(Unit) {
-        onDispose { executor.shutdown() }
-    }
 
     Box(
         modifier = Modifier
@@ -549,38 +605,8 @@ private fun CameraViewfinder(
                 modifier = Modifier
                     .fillMaxSize()
                     .clickable(enabled = !isProcessing) {
-                        // ---- Capture on tap ----
-                        showFlash = true
-                        val capture = imageCapture.value ?: return@clickable
-                        val file = File(
-                            context.cacheDir,
-                            "capture_${System.currentTimeMillis()}.jpg"
-                        )
-                        val outputOptions =
-                            ImageCapture.OutputFileOptions.Builder(file).build()
-                        capture.takePicture(
-                            outputOptions,
-                            executor,
-                            object : ImageCapture.OnImageSavedCallback {
-                                override fun onImageSaved(
-                                    output: ImageCapture.OutputFileResults
-                                ) {
-                                    val bitmap =
-                                        BitmapFactory.decodeFile(file.absolutePath)
-                                    val rotated =
-                                        rotateBitmapIfNeeded(bitmap, file.absolutePath)
-                                    onCapture(rotated)
-                                    showFlash = false
-                                }
-
-                                override fun onError(
-                                    exception: ImageCaptureException
-                                ) {
-                                    exception.printStackTrace()
-                                    showFlash = false
-                                }
-                            }
-                        )
+                        // Tap viewfinder to capture (delegates to shared capture logic)
+                        onCapture()
                     }
             )
         }
@@ -697,6 +723,101 @@ private fun CameraViewfinder(
                         Text("Retry")
                     }
                 }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Shutter capture button — prominent, tactile button below guidelines
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun ShutterCaptureButton(
+    enabled: Boolean,
+    isProcessing: Boolean,
+    onCapture: () -> Unit
+) {
+    // Press animation
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "shutterScale"
+    )
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Outer ring + inner button
+        Box(
+            modifier = Modifier
+                .size(78.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .shadow(
+                    elevation = if (enabled) 8.dp else 2.dp,
+                    shape = CircleShape,
+                    ambientColor = FreshGreen.copy(alpha = 0.3f),
+                    spotColor = FreshGreen.copy(alpha = 0.3f)
+                )
+                .clip(CircleShape)
+                .background(Color.White)
+                .border(
+                    width = 4.dp,
+                    color = if (enabled) FreshGreen else Color(0xFFE0E0E0),
+                    shape = CircleShape
+                )
+                .clickable(
+                    enabled = enabled,
+                    onClick = {
+                        isPressed = true
+                        onCapture()
+                    }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            // Inner filled circle
+            Box(
+                modifier = Modifier
+                    .size(58.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (enabled) FreshGreen else Color(0xFFE0E0E0)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isProcessing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White,
+                        strokeWidth = 2.5.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Camera,
+                        contentDescription = "Capture photo",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+        }
+
+        // Reset press state after a brief moment
+        LaunchedEffect(isPressed) {
+            if (isPressed) {
+                kotlinx.coroutines.delay(150)
+                isPressed = false
             }
         }
     }
@@ -866,27 +987,27 @@ private fun PhotoGuidelinesSection() {
             )
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // ✅ Good practices
         GuidelineItem(
             text = "Center single fruit on plain background",
             isGood = true
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         GuidelineItem(
             text = "Good, even lighting – good or diffuse",
             isGood = true
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         // ❌ Bad practices
         GuidelineItem(
             text = "Multiple fruits in one frame",
             isGood = false
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         GuidelineItem(
             text = "Blurry or poorly lit images",
             isGood = false
@@ -915,9 +1036,10 @@ private fun GuidelineItem(text: String, isGood: Boolean) {
 }
 
 // ---------------------------------------------------------------------------
-// Bottom navigation (scan tab selected)
+// Bottom navigation (scan tab selected) — temporarily disabled
 // ---------------------------------------------------------------------------
 
+/*
 @Composable
 private fun ScanBottomNavigation(selectedRoute: String) {
     NavigationBar(
@@ -970,6 +1092,7 @@ private fun scanNavItemColors() = NavigationBarItemDefaults.colors(
     unselectedTextColor = Color.White.copy(alpha = 0.7f),
     indicatorColor = Color.White.copy(alpha = 0.15f)
 )
+*/
 
 
 

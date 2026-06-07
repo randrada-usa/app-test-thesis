@@ -93,7 +93,8 @@ data class FruitVariety(
     val name: String,
     val scientificName: String,
     val borderColor: Color,
-    val backgroundColor: Color
+    val backgroundColor: Color,
+    val iconRes: Int = 0
 )
 
 private val fruitVarieties = listOf(
@@ -101,19 +102,22 @@ private val fruitVarieties = listOf(
         name = "Carabao Mango",
         scientificName = "Mangifera Indica var. carabao",
         borderColor = Color(0xFFF9A825),
-        backgroundColor = Color(0xFFFFF8E1)
+        backgroundColor = Color(0xFFFFF8E1),
+        iconRes = R.drawable.ic_mango
     ),
     FruitVariety(
         name = "Lakatan Banana",
         scientificName = "Musa acuminata cv. Lakatan",
         borderColor = Color(0xFF66BB6A),
-        backgroundColor = Color(0xFFE8F5E9)
+        backgroundColor = Color(0xFFE8F5E9),
+        iconRes = R.drawable.ic_banana
     ),
     FruitVariety(
         name = "Red Lady Papaya",
         scientificName = "Carica papaya cv. Red Lady",
         borderColor = Color(0xFFEF9A9A),
-        backgroundColor = Color(0xFFFCE4EC)
+        backgroundColor = Color(0xFFFCE4EC),
+        iconRes = R.drawable.ic_papaya
     )
 )
 
@@ -168,6 +172,7 @@ fun HomeScreen(
     // Track which fruit was tapped → opens model-selection dialog
     var selectedFruit by remember { mutableStateOf<FruitVariety?>(null) }
 
+    /* Bottom navigation temporarily disabled
     Scaffold(
         containerColor = Color.White,
         bottomBar = {
@@ -180,80 +185,129 @@ fun HomeScreen(
                 }
             )
         }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(40.dp))
+    ) { padding -> */
 
-            Text(
-                text = "Fruit Quality",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    color = FreshGreenDark,
-                    fontSize = 30.sp,
-                    lineHeight = 36.sp
-                ),
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = "Ripeness Classification",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    color = FreshGreenDark,
-                    fontSize = 30.sp,
-                    lineHeight = 36.sp
-                ),
-                textAlign = TextAlign.Center
-            )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .verticalScroll(scrollState),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(56.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Select fruit variety to begin assessment",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color(0xFF757575),
-                    fontSize = 14.sp
-                ),
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            fruitVarieties.forEachIndexed { index, fruit ->
-                AnimatedVisibility(
-                    visible = index < visibleCards,
-                    enter = fadeIn(animationSpec = tween(400)) +
-                            slideInVertically(
-                                initialOffsetY = { it / 2 },
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessLow
-                                )
-                            )
+        // ── View History button (hidden during model selection dialog) ──
+        if (selectedFruit == null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Ryzabee",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Normal,
+                        color = FreshGreen,
+                        fontSize = 22.sp
+                    )
+                )
+                Button(
+                    onClick = onHistory,
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = FreshGreen
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 2.dp,
+                        pressedElevation = 0.dp
+                    ),
+                    modifier = Modifier.height(38.dp)
                 ) {
-                    FruitVarietyCard(
-                        fruit = fruit,
-                        onClick = { selectedFruit = fruit }
+                    Image(
+                        painter = painterResource(id = R.drawable.history),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        colorFilter = ColorFilter.tint(Color.White)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "View History",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
                     )
                 }
+            }
+        }
 
-                if (index < fruitVarieties.lastIndex) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Fruit Quality",
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontWeight = FontWeight.ExtraBold,
+                color = FreshGreenDark,
+                fontSize = 30.sp,
+                lineHeight = 36.sp
+            ),
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Ripeness Classification",
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontWeight = FontWeight.ExtraBold,
+                color = FreshGreenDark,
+                fontSize = 30.sp,
+                lineHeight = 36.sp
+            ),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Select fruit variety to begin assessment",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = Color(0xFF757575),
+                fontSize = 14.sp
+            ),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(36.dp))
+
+        fruitVarieties.forEachIndexed { index, fruit ->
+            AnimatedVisibility(
+                visible = index < visibleCards,
+                enter = fadeIn(animationSpec = tween(400)) +
+                        slideInVertically(
+                            initialOffsetY = { it / 2 },
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        )
+            ) {
+                FruitVarietyCard(
+                    fruit = fruit,
+                    onClick = { selectedFruit = fruit }
+                )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            TechBadgesRow()
-
-            Spacer(modifier = Modifier.height(16.dp))
+            if (index < fruitVarieties.lastIndex) {
+                Spacer(modifier = Modifier.height(20.dp))
+            }
         }
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        TechBadgesRow()
+
+        Spacer(modifier = Modifier.height(32.dp))
     }
+    /* } // end Scaffold */
 
     // -------- Model / Mode selection dialog --------
     selectedFruit?.let { fruit ->
@@ -593,13 +647,31 @@ private fun FruitVarietyCard(
                 modifier = Modifier
                     .weight(1f)
                     .background(fruit.backgroundColor.copy(alpha = 0.45f))
-                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                    .padding(horizontal = 16.dp, vertical = 20.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    // Fruit icon
+                    if (fruit.iconRes != 0) {
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(fruit.backgroundColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = fruit.iconRes),
+                                contentDescription = "${fruit.name} icon",
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(14.dp))
+                    }
+
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = fruit.name,
@@ -684,9 +756,9 @@ private fun DotSeparator() {
 }
 
 // ---------------------------------------------------------------------------
-// Bottom navigation bar
+// Bottom navigation bar (temporarily disabled)
 // ---------------------------------------------------------------------------
-
+/* 
 @Composable
 private fun HomeBottomNavigation(
     selectedRoute: String,
@@ -770,3 +842,4 @@ private fun navItemColors() = NavigationBarItemDefaults.colors(
     unselectedTextColor = Color.White.copy(alpha = 0.7f),
     indicatorColor = Color.White.copy(alpha = 0.15f)
 )
+*/

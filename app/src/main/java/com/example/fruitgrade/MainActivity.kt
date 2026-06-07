@@ -82,7 +82,11 @@ class MainActivity : ComponentActivity() {
                         ResultScreen(
                             viewModel = viewModel,
                             onHome = { navController.popBackStack("home", false) },
-                            onHistory = { navController.navigate("history") }
+                            onHistory = { navController.navigate("history") },
+                            onRetry = {
+                                viewModel.resetForRetry()
+                                navController.popBackStack("scan", false)
+                            }
                         )
                     }
                     composable(

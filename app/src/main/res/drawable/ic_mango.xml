@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Mango body -->
+    <path
+        android:fillColor="#F9A825"
+        android:pathData="M24,6C14,6 8,14 8,24C8,34 14,42 24,42C34,42 40,34 40,24C40,14 34,6 24,6Z" />
+    <!-- Mango highlight -->
+    <path
+        android:fillColor="#FDD835"
+        android:pathData="M20,10C14,12 10,18 10,24C10,28 12,32 16,34C14,30 14,24 18,18C20,14 22,12 20,10Z" />
+    <!-- Stem -->
+    <path
+        android:fillColor="#558B2F"
+        android:pathData="M24,6C24,6 26,2 30,2C28,4 26,5 24,6Z" />
+    <!-- Leaf -->
+    <path
+        android:fillColor="#7CB342"
+        android:pathData="M30,2C30,2 34,1 36,3C34,4 32,4 30,2Z" />
+</vector>

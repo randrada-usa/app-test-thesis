@@ -217,6 +217,18 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         runInference(bitmaps)
     }
 
+    /** Clears scan results but keeps fruit/model/mode settings for immediate retry. */
+    fun resetForRetry() {
+        val current = _uiState.value
+        _uiState.value = ScanUiState(
+            fruitName = current.fruitName,
+            fruitScientificName = current.fruitScientificName,
+            modelName = current.modelName,
+            scanMode = current.scanMode,
+            maxCaptures = current.maxCaptures
+        )
+    }
+
     fun reset() {
         classifier?.close()
         classifier = null
